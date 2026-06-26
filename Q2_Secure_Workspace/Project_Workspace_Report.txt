@@ -1,0 +1,223 @@
+================================================================================
+         PROJECT WORKSPACE REPORT – Secure Project Workspace Setup
+================================================================================
+Student: hit235
+Date: June 26, 2026
+System: Linux carnitrix 6.18.35-1-lts x86_64
+================================================================================
+
+SECTION 1: DIRECTORY STRUCTURE CREATED
+================================================================================
+
+Command: mkdir -p project_workspace/{docs,src,config,logs}
+Output:
+  Directory structure created successfully.
+
+Explanation: The `mkdir -p` command creates the parent directory "project_workspace"
+along with four subdirectories (docs, src, config, logs) in a single command. The
+`-p` flag ensures no error is thrown if parent directories already exist.
+
+---
+
+Command: find project_workspace -type d
+Output:
+  project_workspace
+  project_workspace/docs
+  project_workspace/src
+  project_workspace/logs
+  project_workspace/config
+
+Explanation: The `find` command with `-type d` lists all directories recursively
+under the workspace. This confirms that all four subdirectories were created
+successfully inside the project_workspace directory.
+
+================================================================================
+
+SECTION 2: FILE PERMISSIONS BEFORE MODIFICATION
+================================================================================
+
+Command: ls -laR project_workspace
+Output (before modification):
+  project_workspace:
+  total 24
+  drwxr-xr-x 6 hit235 hit235 4096 Jun 26 16:09 .
+  drwxr-xr-x 3 hit235 hit235 4096 Jun 26 16:09 ..
+  drwxr-xr-x 2 hit235 hit235 4096 Jun 26 16:09 config
+  drwxr-xr-x 2 hit235 hit235 4096 Jun 26 16:09 docs
+  drwxr-xr-x 2 hit235 hit235 4096 Jun 26 16:09 logs
+  drwxr-xr-x 2 hit235 hit235 4096 Jun 26 16:09 src
+
+  project_workspace/config:
+  -rw-r--r-- 1 hit235 hit235   19 Jun 26 16:09 settings.conf
+
+  project_workspace/docs:
+  -rw-r--r-- 1 hit235 hit235   22 Jun 26 16:09 README.md
+
+  project_workspace/logs:
+  -rw-r--r-- 1 hit235 hit235   16 Jun 26 16:09 app.log
+
+  project_workspace/src:
+  -rw-r--r-- 1 hit235 hit235   24 Jun 26 16:09 main.py
+
+Explanation: Before any modifications, all directories have default permissions
+`drwxr-xr-x` (755) and all files have `rw-r--r--` (644). These are the default
+permissions determined by the umask value. The owner has full access, while group
+and others have read and execute access on directories and read access on files.
+
+================================================================================
+
+SECTION 3: PERMISSION MODIFICATION COMMANDS
+================================================================================
+
+Command: chmod 750 project_workspace
+Explanation: Sets the workspace root to rwxr-x--- so that the owner has full access,
+the group can read/list/traverse, and others have no access at all.
+
+Command: chmod 700 project_workspace/config
+Explanation: Sets the config directory to rwx------ restricting it to owner-only access.
+Configuration files often contain sensitive data like credentials and API keys, so
+they must be highly restricted.
+
+Command: chmod 640 project_workspace/config/settings.conf
+Explanation: Sets the config file to rw-r----- allowing the owner to read/write and
+the group to only read. Others have no access to sensitive configuration.
+
+Command: chmod 755 project_workspace/docs
+Explanation: Keeps the docs directory at rwxr-xr-x since documentation is generally
+meant to be readable by all team members and even other users.
+
+Command: chmod 644 project_workspace/docs/README.md
+Explanation: Keeps the README file at rw-r--r-- since documentation files should be
+world-readable but only writable by the owner.
+
+Command: chmod 750 project_workspace/src
+Explanation: Sets the source code directory to rwxr-x--- so that only the owner and
+group members can access the code, protecting intellectual property.
+
+Command: chmod 750 project_workspace/logs
+Explanation: Restricts the logs directory to owner and group only. Log files can contain
+sensitive runtime information and should not be accessible to others.
+
+Command: chmod 640 project_workspace/logs/app.log
+Explanation: Sets the log file to rw-r----- so the owner can write logs and the group
+can read them for monitoring purposes.
+
+================================================================================
+
+SECTION 4: FILE PERMISSIONS AFTER MODIFICATION
+================================================================================
+
+Command: ls -laR project_workspace
+Output (after modification):
+  project_workspace:
+  total 24
+  drwxr-x--- 6 hit235 hit235 4096 Jun 26 16:09 .
+  drwxr-xr-x 3 hit235 hit235 4096 Jun 26 16:09 ..
+  drwx------ 2 hit235 hit235 4096 Jun 26 16:09 config
+  drwxr-xr-x 2 hit235 hit235 4096 Jun 26 16:09 docs
+  drwxr-x--- 2 hit235 hit235 4096 Jun 26 16:09 logs
+  drwxr-x--- 2 hit235 hit235 4096 Jun 26 16:09 src
+
+  project_workspace/config:
+  -rw-r----- 1 hit235 hit235   19 Jun 26 16:09 settings.conf
+
+  project_workspace/docs:
+  -rw-r--r-- 1 hit235 hit235   22 Jun 26 16:09 README.md
+
+  project_workspace/logs:
+  -rw-r----- 1 hit235 hit235   16 Jun 26 16:09 app.log
+
+  project_workspace/src:
+  -rw-r--r-- 1 hit235 hit235   24 Jun 26 16:09 main.py
+
+Explanation: After modification, the permissions reflect a tiered access model.
+The config directory is the most restricted (700), the src and logs directories
+allow group access (750), and docs remains publicly readable (755). This demonstrates
+the principle of least privilege.
+
+================================================================================
+
+SECTION 5: OWNERSHIP DETAILS
+================================================================================
+
+Command: stat project_workspace
+Output:
+  File: project_workspace
+  Size: 4096            Blocks: 8          IO Block: 4096   directory
+  Device: 259,8   Inode: 13428507    Links: 6
+  Access: (0750/drwxr-x---)  Uid: ( 1000/  hit235)   Gid: ( 1000/  hit235)
+  Access: 2026-06-26 16:09:36.829878339 +0530
+  Modify: 2026-06-26 16:09:36.793212609 +0530
+  Change: 2026-06-26 16:09:36.809878850 +0530
+  Birth:  2026-06-26 16:09:36.793212609 +0530
+
+Explanation: The `stat` command provides detailed file metadata including inode number,
+permission bits in both octal (0750) and symbolic (drwxr-x---) notation, owner UID/GID,
+and four timestamps (Access, Modify, Change, Birth). The owner is hit235 (UID 1000)
+and the group is also hit235 (GID 1000).
+
+================================================================================
+
+SECTION 6: UMASK VALUE
+================================================================================
+
+Command: umask
+Output:
+  0022
+
+Command: umask -S
+Output:
+  u=rwx,g=rx,o=rx
+
+Explanation: The `umask` command shows the default permission mask. A umask of 0022
+means that newly created files will have permissions 644 (666 - 022) and newly created
+directories will have permissions 755 (777 - 022). The symbolic output `u=rwx,g=rx,o=rx`
+confirms this — the owner gets full permissions while group and others get read and
+execute (but not write) permissions by default.
+
+================================================================================
+
+SECTION 7: HOW PERMISSIONS PROTECT PROJECT DATA
+================================================================================
+
+Linux file permissions form a three-tiered access control system:
+
+1. OWNER PERMISSIONS (u): The project owner (hit235) has full rwx access to all
+   directories and rw access to all files, enabling complete control over the workspace.
+
+2. GROUP PERMISSIONS (g): The project group members can access src, logs, and docs
+   directories but CANNOT access the config directory. This allows team collaboration
+   while protecting sensitive configuration data.
+
+3. OTHERS PERMISSIONS (o): External users can only access the docs directory. All
+   other directories (config, src, logs, and the workspace root) are completely
+   inaccessible to users outside the project team.
+
+This layered approach follows the Principle of Least Privilege — users are given
+only the minimum level of access necessary to perform their tasks. The config
+directory with its 700 permission ensures that database credentials, API keys,
+and other secrets are accessible only to the project owner.
+
+================================================================================
+
+OBSERVATIONS (Summary)
+================================================================================
+
+1. Default permissions (umask 0022) provide a reasonable starting point but are too
+   permissive for a secure workspace — manual adjustment is necessary.
+
+2. The chmod command allows fine-grained control over access at both directory and
+   file levels, enabling a tiered security model.
+
+3. The config directory requires the most restrictive permissions (700) because it
+   typically stores sensitive credentials and application secrets.
+
+4. Documentation (docs) can remain world-readable since it contains no sensitive data
+   and benefits from broader accessibility.
+
+5. The stat command provides comprehensive metadata including inode numbers, timestamps,
+   and both octal and symbolic permission representations.
+
+================================================================================
+                              END OF REPORT
+================================================================================

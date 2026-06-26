@@ -1,0 +1,234 @@
+================================================================================
+     STORAGE ASSESSMENT REPORT – Storage Health Assessment and Documentation
+================================================================================
+Student: hit235
+Date: June 26, 2026
+System: Linux carnitrix 6.18.35-1-lts x86_64
+Note: This report was created using the vi editor as required.
+================================================================================
+
+SECTION 1: AVAILABLE STORAGE DEVICES
+================================================================================
+
+Command: lsblk
+Output:
+  NAME        MAJ:MIN RM   SIZE RO TYPE MOUNTPOINTS
+  zram0       253:0    0  15.4G  0 disk [SWAP]
+  nvme0n1     259:0    0 953.9G  0 disk
+  ├─nvme0n1p1 259:1    0   260M  0 part
+  ├─nvme0n1p2 259:2    0    16M  0 part
+  ├─nvme0n1p3 259:3    0 681.9G  0 part
+  ├─nvme0n1p4 259:4    0   1.4G  0 part
+  ├─nvme0n1p5 259:5    0    20G  0 part
+  ├─nvme0n1p6 259:6    0   260M  0 part
+  ├─nvme0n1p7 259:7    0  1023M  0 part /boot
+  └─nvme0n1p8 259:8    0   249G  0 part /
+
+Explanation: The `lsblk` command lists all block devices. The system has a single
+NVMe SSD (nvme0n1) with 953.9 GB total capacity divided into 8 partitions. There
+is also a zram0 device (15.4 GB) used as compressed swap space in RAM.
+
+Partition breakdown:
+  - nvme0n1p1 (260M): EFI System Partition (Windows)
+  - nvme0n1p2 (16M): Microsoft Reserved Partition
+  - nvme0n1p3 (681.9G): Windows OS partition (NTFS)
+  - nvme0n1p4 (1.4G): Windows recovery partition
+  - nvme0n1p5 (20G): Windows restore partition
+  - nvme0n1p6 (260M): ASUS recovery/utility partition
+  - nvme0n1p7 (1023M): Linux boot partition (/boot)
+  - nvme0n1p8 (249G): Linux root partition (/)
+
+================================================================================
+
+SECTION 2: MOUNTED FILE SYSTEMS
+================================================================================
+
+Command: df -hT
+Output:
+  Filesystem     Type      Size  Used Avail Use% Mounted on
+  dev            devtmpfs   16G     0   16G   0% /dev
+  run            tmpfs      16G  8.1M   16G   1% /run
+  efivarfs       efivarfs  192K  133K   55K  71% /sys/firmware/efi/efivars
+  /dev/nvme0n1p8 ext4      245G   47G  186G  20% /
+  tmpfs          tmpfs      16G   43M   16G   1% /dev/shm
+  none           tmpfs     1.0M     0  1.0M   0% /run/credentials/systemd-journald.service
+  tmpfs          tmpfs      16G   13M   16G   1% /tmp
+  /dev/nvme0n1p7 vfat     1021M  137M  885M  14% /boot
+  tmpfs          tmpfs     3.1G  116K  3.1G   1% /run/user/1000
+
+Explanation: The `df -hT` command displays mounted filesystems with human-readable
+sizes and filesystem types. Key observations:
+  - The root filesystem (/) is ext4, using 47G of 245G (20% usage) — healthy
+  - The boot partition is FAT32 (vfat) at 14% usage
+  - Multiple tmpfs mounts exist for temporary data and runtime state
+  - devtmpfs provides device nodes in /dev
+  - efivarfs provides EFI variable access at 71% — worth monitoring
+
+================================================================================
+
+SECTION 3: DISK USAGE STATISTICS
+================================================================================
+
+Command: du -sh /home/hit235
+Output:
+  27G     /home/hit235
+
+Explanation: The user's home directory consumes 27 GB of disk space, which is
+roughly 11% of the root partition's total capacity.
+
+---
+
+Command: du -sh /* (top-level directory usage)
+Output:
+  0       /bin
+  137M    /boot
+  0       /dev
+  9.4M    /etc
+  27G     /home
+  0       /lib
+  0       /lib64
+  16K     /lost+found
+  12K     /mnt
+  2.2G    /opt
+  0       /proc
+  4.0K    /root
+  237M    /run
+  0       /sbin
+  12K     /srv
+  0       /sys
+  12M     /tmp
+  9.0G    /usr
+  8.3G    /var
+
+Explanation: The `du -sh /*` command shows disk usage per top-level directory.
+The largest consumers are /home (27G), /usr (9.0G), /var (8.3G), and /opt (2.2G).
+Directories showing 0 bytes (/proc, /sys, /dev) are virtual filesystems that don't
+occupy real disk space. /bin, /lib, /lib64, /sbin show 0 because they are symlinks
+to their counterparts in /usr.
+
+================================================================================
+
+SECTION 4: INODE UTILIZATION
+================================================================================
+
+Command: df -i
+Output:
+  Filesystem       Inodes  IUsed    IFree IUse% Mounted on
+  dev             4001287    737  4000550    1% /dev
+  run             4025529   2745  4022784    1% /run
+  efivarfs              0      0        0     - /sys/firmware/efi/efivars
+  /dev/nvme0n1p8 16350336 615226 15735110    4% /
+  tmpfs           4025529     74  4025455    1% /dev/shm
+  none               1024      1     1023    1% /run/credentials/...
+  tmpfs           1048576   1533  1047043    1% /tmp
+  /dev/nvme0n1p7        0      0        0     - /boot
+  tmpfs            805105    173   804932    1% /run/user/1000
+
+Explanation: The `df -i` command shows inode usage. The root filesystem has
+16,350,336 total inodes with 615,226 used (4% utilization). Each file and
+directory consumes one inode, so this means there are approximately 615K
+files/directories on the system. With over 15.7 million free inodes, inode
+exhaustion is not a concern.
+
+Note: vfat (FAT32) filesystems like /boot show 0 inodes because FAT does not
+use an inode-based structure — it uses a File Allocation Table instead.
+
+================================================================================
+
+SECTION 5: BLOCK DEVICE FILESYSTEM INFORMATION
+================================================================================
+
+Command: lsblk -f
+Output:
+  NAME        FSTYPE LABEL   UUID                                 FSAVAIL FSUSE% MOUNTPOINTS
+  zram0       swap   zram0   e2306c2d-efa9-400e-8a6c-e33fe202a311                [SWAP]
+  nvme0n1
+  ├─nvme0n1p1 vfat   SYSTEM  288A-FC5B
+  ├─nvme0n1p2
+  ├─nvme0n1p3 ntfs   OS      B8528CB0528C7542
+  ├─nvme0n1p4 ntfs           32BC90B4BC9073D7
+  ├─nvme0n1p5 ntfs   RESTORE 6AE89F0FE89ED921
+  ├─nvme0n1p6 vfat   MYASUS  509F-0CC0
+  ├─nvme0n1p7 vfat           EA6F-05CC                            884M    13% /boot
+  └─nvme0n1p8 ext4           475a7998-1285-4c51-8fda-2fd9f887ae34 185.5G  19% /
+
+Explanation: The `lsblk -f` command shows filesystem types, labels, and UUIDs for
+each partition. The system is a dual-boot setup with Windows (NTFS partitions labeled
+"OS", "RESTORE") and Linux (ext4 root, vfat boot). Each partition has a unique UUID
+used for reliable mounting in /etc/fstab.
+
+================================================================================
+
+SECTION 6: MOUNT POINTS (Detailed)
+================================================================================
+
+Command: mount | head -30
+Output (key entries):
+  /dev/nvme0n1p8 on / type ext4 (rw,relatime)
+  /dev/nvme0n1p7 on /boot type vfat (rw,relatime,fmask=0022,dmask=0022,...)
+  tmpfs on /dev/shm type tmpfs (rw,nosuid,nodev,inode64,usrquota)
+  tmpfs on /tmp type tmpfs (rw,nosuid,nodev,nr_inodes=1048576,inode64,usrquota)
+  proc on /proc type proc (rw,nosuid,nodev,noexec,relatime)
+  sys on /sys type sysfs (rw,nosuid,nodev,noexec,relatime)
+  cgroup2 on /sys/fs/cgroup type cgroup2 (rw,nosuid,nodev,noexec,relatime,...)
+  gvfsd-fuse on /run/user/1000/gvfs type fuse.gvfsd-fuse (rw,nosuid,nodev,...)
+
+Explanation: The `mount` command shows all currently mounted filesystems with their
+mount options. The root filesystem is ext4 with "relatime" (reduced access time
+updates for performance). tmpfs mounts include security options like "nosuid" and
+"nodev". Virtual filesystems like proc, sysfs, and cgroup2 provide kernel interfaces.
+
+================================================================================
+
+SECTION 7: STORAGE HEALTH OBSERVATIONS
+================================================================================
+
+1. DISK SPACE: The root partition is at 20% usage (47G used of 245G), leaving
+   186G free. This is a healthy utilization level — generally below 80% is
+   considered optimal.
+
+2. INODE USAGE: At only 4% inode utilization (615K of 16.3M), there is no risk
+   of inode exhaustion. Some workloads (e.g., millions of small files) can exhaust
+   inodes before disk space.
+
+3. BOOT PARTITION: At 14% usage (137M of 1021M), the boot partition has sufficient
+   space for kernel images and bootloader files.
+
+4. SWAP: The system uses zram (compressed in-memory swap) at 15.4G, which is
+   a modern approach that avoids slow disk-based swap while still providing
+   memory pressure relief.
+
+5. EFI VARIABLES: The efivarfs filesystem is at 71% usage — this is normal but
+   should be monitored as EFI variable space is limited by firmware.
+
+6. FILESYSTEM TYPES: The system uses ext4 for the root partition (reliable,
+   journaling filesystem) and vfat for boot (EFI compatibility requirement).
+
+================================================================================
+
+SECTION 8: RECOMMENDATIONS FOR IMPROVING STORAGE UTILIZATION
+================================================================================
+
+1. CLEAN PACKAGE CACHE: Run package cache cleanup to reclaim space from cached
+   package downloads that are no longer needed.
+
+2. MONITOR /var DIRECTORY: At 8.3G, the /var directory (containing logs, caches,
+   and package data) is the third largest consumer. Implement log rotation and
+   set size limits for log files.
+
+3. REVIEW /home USAGE: At 27G, the home directory is the largest space consumer.
+   Audit for large files, old downloads, and unused project directories.
+
+4. CONSIDER SEPARATE /home PARTITION: Creating a separate partition for /home
+   would protect user data during OS reinstallation and allow independent
+   resizing.
+
+5. SET UP MONITORING ALERTS: Configure disk space monitoring to alert when any
+   partition exceeds 80% usage, preventing unexpected full-disk situations.
+
+6. TRIM SSD: Ensure the fstrim service is enabled for the NVMe SSD to maintain
+   write performance and extend drive lifespan through periodic TRIM operations.
+
+================================================================================
+                              END OF REPORT
+================================================================================

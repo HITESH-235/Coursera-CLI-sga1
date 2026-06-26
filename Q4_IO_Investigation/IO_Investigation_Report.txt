@@ -1,0 +1,236 @@
+================================================================================
+        IO INVESTIGATION REPORT – File Access and I/O Investigation
+================================================================================
+Student: hit235
+Date: June 26, 2026
+System: Linux carnitrix 6.18.35-1-lts x86_64
+================================================================================
+
+SECTION 1: OPEN FILES IDENTIFIED
+================================================================================
+
+Command: ls -la /proc/$$/fd
+Output (selected entries):
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 0 -> /dev/pts/1
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 1 -> /dev/pts/1
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 2 -> /dev/pts/1
+  lr-x------ 1 hit235 hit235 64 Jun 26 16:10 3 -> /opt/antigravity-ide/icudtl.dat
+  lr-x------ 1 hit235 hit235 64 Jun 26 16:10 4 -> /opt/antigravity-ide/v8_context_snapshot.bin
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 5 -> 'socket:[5273872]'
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 6 -> 'socket:[5273873]'
+  lr-x------ 1 hit235 hit235 64 Jun 26 16:10 7 -> 'pipe:[5273874]'
+  l-wx------ 1 hit235 hit235 64 Jun 26 16:10 8 -> 'pipe:[5273874]'
+  lr-x------ 1 hit235 hit235 64 Jun 26 16:10 9 -> /proc/2151265
+  lr-x------ 1 hit235 hit235 64 Jun 26 16:10 11 -> /opt/antigravity-ide/v8_context_snapshot.bin
+  lr-x------ 1 hit235 hit235 64 Jun 26 16:10 13 -> /proc/2151265/smaps
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 15 -> 'anon_inode:[eventpoll]'
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 48 -> /dev/dri/renderD128
+  lrwx------ 1 hit235 hit235 64 Jun 26 16:10 64 -> 'socket:[5267178]'
+  lr-x------ 1 hit235 hit235 64 Jun 26 16:10 66 -> anon_inode:inotify
+  l-wx------ 1 hit235 hit235 64 Jun 26 16:10 85 -> '/home/hit235/.config/Antigravity IDE/logs/20260626T160738/main.log'
+
+Explanation: The `/proc/$$/fd` directory contains symbolic links to all files opened
+by the current process (identified by PID $$). Each entry is numbered according to
+its file descriptor number. The listing reveals that the process has dozens of open
+files including regular files, sockets, pipes, event poll descriptors, inotify
+watches, and GPU device files — showing the diverse types of I/O resources a modern
+application manages.
+
+================================================================================
+
+SECTION 2: FILE DESCRIPTOR OBSERVATIONS
+================================================================================
+
+Standard File Descriptors:
+  FD 0 (stdin)  -> /dev/pts/1  (pseudo-terminal input)
+  FD 1 (stdout) -> /dev/pts/1  (pseudo-terminal output)
+  FD 2 (stderr) -> /dev/pts/1  (pseudo-terminal error)
+
+Explanation: Every Linux process starts with three standard file descriptors:
+  - FD 0 (stdin):  Standard input — where the process reads user input
+  - FD 1 (stdout): Standard output — where the process writes normal output
+  - FD 2 (stderr): Standard error — where the process writes error messages
+All three are connected to /dev/pts/1 (a pseudo-terminal device), which is the
+terminal session where the shell is running.
+
+Other notable file descriptors observed:
+  - FD 3, 4, 11, 72: Read-only files (data files, snapshots)
+  - FD 5, 6, 46, 47: Network sockets for inter-process communication
+  - FD 7, 8: Pipe pair (FD 7 read-end, FD 8 write-end) for IPC
+  - FD 15-24: Event poll and event file descriptors for async I/O
+  - FD 48: GPU render device (/dev/dri/renderD128)
+  - FD 66: inotify descriptor for filesystem event monitoring
+  - FD 85, 89, 121, 124: Write-only log files
+
+Explanation: Linux treats everything as a file, including sockets, pipes, and devices.
+File descriptors are small non-negative integers that the kernel assigns to each open
+file. The permissions shown (lr-x, l-wx, lrwx) in /proc/*/fd indicate whether the
+file was opened for reading, writing, or both.
+
+================================================================================
+
+SECTION 3: OUTPUT REDIRECTION AND ERROR REDIRECTION
+================================================================================
+
+Command: echo "This is standard output" > stdout_test.txt
+Command: cat stdout_test.txt
+Output:
+  This is standard output
+
+Explanation: The `>` operator redirects stdout (FD 1) to a file. Instead of being
+displayed on the terminal, the output of `echo` is written to stdout_test.txt. This
+creates the file if it doesn't exist or truncates it if it does.
+
+---
+
+Command: ls /nonexistent_directory 2> stderr_test.txt
+Exit code: 2
+Command: cat stderr_test.txt
+Output:
+  ls: cannot access '/nonexistent_directory': No such file or directory
+
+Explanation: The `2>` operator redirects stderr (FD 2) to a file. The `ls` command
+produces an error message because the directory doesn't exist. Instead of appearing
+on the terminal, the error is captured in stderr_test.txt. The exit code 2 indicates
+the command failed.
+
+---
+
+Command: ls /home /nonexistent_path > combined_output.txt 2>&1
+Command: cat combined_output.txt
+Output:
+  ls: cannot access '/nonexistent_path': No such file or directory
+  /home:
+  hit235
+
+Explanation: The `2>&1` syntax redirects stderr to the same destination as stdout.
+Both the error message (from /nonexistent_path) and the normal output (from /home)
+are captured in combined_output.txt. This is useful for logging all output from a
+command to a single file.
+
+---
+
+Command: echo "First line" > append_test.txt
+Command: echo "Second line" >> append_test.txt
+Command: cat append_test.txt
+Output:
+  First line
+  Second line
+
+Explanation: The `>>` operator appends to a file instead of overwriting it. The first
+`echo` with `>` creates the file, and the second `echo` with `>>` adds the second
+line without erasing the first. This is essential for log files that accumulate data.
+
+================================================================================
+
+SECTION 4: RESOURCE LIMITS
+================================================================================
+
+Command: ulimit -a
+Output:
+  real-time non-blocking time  (microseconds, -R) 200000
+  core file size              (blocks, -c) unlimited
+  data seg size               (kbytes, -d) unlimited
+  scheduling priority                 (-e) 0
+  file size                   (blocks, -f) unlimited
+  pending signals                     (-i) 125638
+  max locked memory           (kbytes, -l) 8192
+  max memory size             (kbytes, -m) unlimited
+  open files                          (-n) 524288
+  pipe size                (512 bytes, -p) 8
+  POSIX message queues         (bytes, -q) 819200
+  real-time priority                  (-r) 0
+  stack size                  (kbytes, -s) 8192
+  cpu time                   (seconds, -t) unlimited
+  max user processes                  (-u) 125638
+  virtual memory              (kbytes, -v) unlimited
+  file locks                          (-x) unlimited
+
+Explanation: The `ulimit -a` command displays all resource limits for the current
+shell session. Key observations:
+  - Open files limit: 524288 — maximum file descriptors a process can have open
+  - Max user processes: 125638 — maximum processes the user can create
+  - Stack size: 8192 KB (8 MB) — maximum stack memory per thread
+  - Core file size: unlimited — no limit on core dump files
+  - Max locked memory: 8192 KB — memory that can be locked into RAM
+
+---
+
+Command: ulimit -n
+Output:
+  524288
+
+Explanation: This displays specifically the maximum number of open file descriptors
+allowed per process. The value 524288 (512K) is quite generous, suitable for server
+applications that handle many concurrent connections.
+
+---
+
+Command: cat /proc/sys/fs/file-nr
+Output:
+  13077   0       9223372036854775807
+
+Explanation: The file-nr pseudo-file shows system-wide file descriptor statistics:
+  - 13077: Currently allocated file descriptors across all processes
+  - 0: Free file descriptors (always 0 in modern kernels)
+  - 9223372036854775807: Maximum system-wide file descriptors (effectively unlimited)
+
+---
+
+Command: cat /proc/sys/fs/file-max
+Output:
+  9223372036854775807
+
+Explanation: The file-max value represents the system-wide maximum number of file
+descriptors that can be allocated. The value 9223372036854775807 (2^63 - 1) is
+the maximum 64-bit signed integer, indicating the kernel places no practical limit.
+
+================================================================================
+
+SECTION 5: HOW LINUX MANAGES FILE I/O
+================================================================================
+
+Linux manages file I/O through a layered architecture:
+
+1. FILE DESCRIPTORS: Every open file is represented by a small integer (file
+   descriptor). The kernel maintains a per-process file descriptor table that maps
+   these integers to internal file structures.
+
+2. VIRTUAL FILE SYSTEM (VFS): The VFS layer provides a uniform interface for all
+   file operations regardless of the underlying filesystem type (ext4, tmpfs, proc).
+
+3. I/O REDIRECTION: The shell can manipulate file descriptors using operators like
+   >, >>, 2>, and 2>&1. This works because stdout, stderr, and stdin are simply
+   FD 1, 2, and 0 — reassigning them changes where output goes.
+
+4. EVERYTHING IS A FILE: Linux represents devices, sockets, pipes, and even kernel
+   data structures as files. This unified abstraction allows the same read/write
+   system calls to work across all I/O types.
+
+5. RESOURCE LIMITS: The kernel enforces per-process and system-wide limits on open
+   files, processes, memory, and other resources to prevent any single process from
+   exhausting system resources.
+
+================================================================================
+
+OBSERVATIONS (Summary)
+================================================================================
+
+1. The process had dozens of open file descriptors including regular files, sockets,
+   pipes, and device files, demonstrating Linux's "everything is a file" philosophy.
+
+2. Standard file descriptors (0, 1, 2) are connected to the pseudo-terminal, and
+   can be redirected using shell operators (>, 2>, >>, 2>&1).
+
+3. Output redirection (>) truncates and writes, while append redirection (>>) adds
+   to existing content — critical for proper log management.
+
+4. The system allows up to 524288 open files per process and has 13077 file
+   descriptors currently allocated system-wide.
+
+5. The /proc filesystem provides real-time kernel and process information, making it
+   an invaluable tool for investigating I/O behavior and system resource usage.
+
+================================================================================
+                              END OF REPORT
+================================================================================

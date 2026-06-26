@@ -1,0 +1,149 @@
+================================================================================
+              ENVIRONMENT REPORT – Linux Environment Verification
+================================================================================
+Student: hit235
+Date: June 26, 2026
+System: Linux carnitrix 6.18.35-1-lts x86_64
+================================================================================
+
+SECTION 1: USERNAME AND GROUPS
+================================================================================
+
+Command: whoami
+Output:
+  hit235
+
+Explanation: The `whoami` command displays the current logged-in username. The output
+confirms that I am logged in as user "hit235".
+
+---
+
+Command: groups
+Output:
+  hit235 input wheel
+
+Explanation: The `groups` command lists all groups the current user belongs to. I am a
+member of three groups — "hit235" (primary group), "input" (for input device access),
+and "wheel" (which grants sudo/administrative privileges on Arch-based systems).
+
+---
+
+Command: id
+Output:
+  uid=1000(hit235) gid=1000(hit235) groups=1000(hit235),992(input),998(wheel)
+
+Explanation: The `id` command provides detailed identity information including numeric
+UID, GID, and all supplementary group memberships. My UID is 1000 (first non-root user),
+and I can see the numeric IDs corresponding to each group.
+
+================================================================================
+
+SECTION 2: CURRENT SHELL
+================================================================================
+
+Command: echo $SHELL
+Output:
+  /usr/bin/zsh
+
+Explanation: The $SHELL environment variable holds the path to the user's default login
+shell. My default shell is Zsh (Z Shell), located at /usr/bin/zsh, which is a powerful
+shell with advanced features like auto-completion and syntax highlighting.
+
+================================================================================
+
+SECTION 3: CURRENT WORKING DIRECTORY
+================================================================================
+
+Command: pwd
+Output:
+  /home/hit235/Documents/Bits_CLI/coursera-cli-sga-1
+
+Explanation: The `pwd` (print working directory) command displays the absolute path of
+the current directory. I am working inside the coursera-cli-sga-1 project repository
+located within my Documents folder.
+
+================================================================================
+
+SECTION 4: LIST OF FILES AND DIRECTORIES
+================================================================================
+
+Command: ls -la
+Output:
+  total 12
+  drwxr-xr-x 3 hit235 hit235 4096 Jun 26 16:06 .
+  drwxr-xr-x 3 hit235 hit235 4096 Jun 26 16:06 ..
+  drwxr-xr-x 6 hit235 hit235 4096 Jun 26 16:08 .git
+
+Explanation: The `ls -la` command lists all files and directories including hidden ones
+(prefixed with a dot) in long format. The workspace currently contains only the `.git`
+directory, which is the Git version control metadata folder. The permissions (drwxr-xr-x)
+indicate it is a directory with standard read/write/execute permissions for the owner and
+read/execute for group and others.
+
+================================================================================
+
+SECTION 5: SYSTEM INFORMATION
+================================================================================
+
+Command: uname -a
+Output:
+  Linux carnitrix 6.18.35-1-lts #1 SMP PREEMPT_DYNAMIC Tue, 09 Jun 2026 11:41:56 +0000 x86_64 GNU/Linux
+
+Explanation: The `uname -a` command displays comprehensive system information. This system
+is running Linux kernel 6.18.35-1-lts on an x86_64 architecture. The hostname is "carnitrix"
+and the kernel supports SMP (Symmetric Multi-Processing) with PREEMPT_DYNAMIC scheduling.
+
+---
+
+Command: cat /etc/hostname
+Output:
+  carnitrix
+
+Explanation: The /etc/hostname file stores the system's hostname. This confirms the
+machine is named "carnitrix".
+
+================================================================================
+
+SECTION 6: NETWORK CONNECTIVITY VERIFICATION
+================================================================================
+
+Command: ping -c 4 google.com
+Output:
+  PING google.com (142.251.222.142) 56(84) bytes of data.
+  64 bytes from pnmaaa-az-in-f14.1e100.net (142.251.222.142): icmp_seq=1 ttl=118 time=10.7 ms
+  64 bytes from pnmaaa-az-in-f14.1e100.net (142.251.222.142): icmp_seq=2 ttl=118 time=18.9 ms
+  64 bytes from pnmaaa-az-in-f14.1e100.net (142.251.222.142): icmp_seq=3 ttl=118 time=19.2 ms
+  64 bytes from pnmaaa-az-in-f14.1e100.net (142.251.222.142): icmp_seq=4 ttl=118 time=19.1 ms
+
+  --- google.com ping statistics ---
+  4 packets transmitted, 4 received, 0% packet loss, time 3005ms
+  rtt min/avg/max/mdev = 10.696/16.981/19.210/3.629 ms
+
+Explanation: The `ping -c 4 google.com` command sends 4 ICMP echo requests to google.com
+to verify network connectivity. All 4 packets were received with 0% packet loss, confirming
+that the system has a working internet connection. The average round-trip time was ~17ms,
+and DNS resolution is working correctly (google.com resolved to 142.251.222.142).
+
+================================================================================
+
+OBSERVATIONS (Summary)
+================================================================================
+
+1. The system is running Arch Linux with kernel 6.18.35-1-lts on x86_64 architecture,
+   indicating a modern 64-bit Linux environment suitable for development work.
+
+2. The user "hit235" has UID 1000 and belongs to the "wheel" group, which provides
+   administrative (sudo) access — essential for a Linux support engineer.
+
+3. The default shell is Zsh (/usr/bin/zsh), which offers enhanced features over
+   the traditional Bash shell such as better tab completion and theming.
+
+4. Network connectivity is fully operational with 0% packet loss and acceptable
+   latency (~17ms average), confirming DNS and internet access are functional.
+
+5. The workspace is a clean Git repository ready for project use, with standard
+   Linux file permissions applied to all directories.
+
+================================================================================
+                              END OF REPORT
+================================================================================

@@ -1,0 +1,216 @@
+================================================================================
+            LINK ANALYSIS REPORT – File System and Link Analysis
+================================================================================
+Student: hit235
+Date: June 26, 2026
+System: Linux carnitrix 6.18.35-1-lts x86_64
+================================================================================
+
+SECTION 1: FILE AND LINK CREATION
+================================================================================
+
+Command: echo "This is the original file for link analysis experiment." > original_file.txt
+Explanation: Created a text file called "original_file.txt" with sample content
+using output redirection. This file will serve as the base for creating links.
+
+---
+
+Command: ln original_file.txt hard_link.txt
+Explanation: Created a hard link named "hard_link.txt" that points to the same
+inode as original_file.txt. A hard link is essentially another directory entry
+pointing to the same data blocks on disk.
+
+---
+
+Command: ln -s original_file.txt symbolic_link.txt
+Explanation: Created a symbolic (soft) link named "symbolic_link.txt" that points
+to original_file.txt by name. Unlike hard links, symbolic links create a separate
+file that stores the path to the target file.
+
+================================================================================
+
+SECTION 2: INODE NUMBERS OF ALL FILES
+================================================================================
+
+Command: ls -lai
+Output:
+  13428518 -rw-r--r-- 2 hit235 hit235   56 Jun 26 16:09 hard_link.txt
+  13428518 -rw-r--r-- 2 hit235 hit235   56 Jun 26 16:09 original_file.txt
+  13428519 lrwxrwxrwx 1 hit235 hit235   17 Jun 26 16:09 symbolic_link.txt -> original_file.txt
+
+Explanation: The `ls -lai` command shows inode numbers in the first column.
+Key observations:
+  - original_file.txt and hard_link.txt share the SAME inode (13428518)
+  - symbolic_link.txt has a DIFFERENT inode (13428519)
+  - The link count for the hard-linked files is 2 (two directory entries point
+    to the same inode)
+  - The symbolic link shows "l" as file type and its size (17 bytes) represents
+    the length of the path string "original_file.txt"
+
+================================================================================
+
+SECTION 3: DETAILED METADATA (stat command)
+================================================================================
+
+Command: stat original_file.txt
+Output:
+  File: original_file.txt
+  Size: 56              Blocks: 8          IO Block: 4096   regular file
+  Device: 259,8   Inode: 13428518    Links: 2
+  Access: (0644/-rw-r--r--)  Uid: ( 1000/  hit235)   Gid: ( 1000/  hit235)
+  Access: 2026-06-26 16:09:51.682840563 +0530
+  Modify: 2026-06-26 16:09:51.682840563 +0530
+  Change: 2026-06-26 16:09:51.685605322 +0530
+  Birth:  2026-06-26 16:09:51.682840563 +0530
+
+Explanation: The stat output for the original file shows inode 13428518 with a link
+count of 2 (because the hard link exists). The file occupies 8 blocks (4096-byte IO
+blocks) for its 56 bytes of content.
+
+---
+
+Command: stat hard_link.txt
+Output:
+  File: hard_link.txt
+  Size: 56              Blocks: 8          IO Block: 4096   regular file
+  Device: 259,8   Inode: 13428518    Links: 2
+  Access: (0644/-rw-r--r--)  Uid: ( 1000/  hit235)   Gid: ( 1000/  hit235)
+  Access: 2026-06-26 16:09:51.682840563 +0530
+  Modify: 2026-06-26 16:09:51.682840563 +0530
+  Change: 2026-06-26 16:09:51.685605322 +0530
+  Birth:  2026-06-26 16:09:51.682840563 +0530
+
+Explanation: The hard link has IDENTICAL metadata to the original file — same inode
+(13428518), same size, same timestamps, same permissions. This confirms that a hard
+link is simply another name for the same file data; there is no concept of "original"
+vs "copy" at the filesystem level.
+
+---
+
+Command: stat symbolic_link.txt
+Output:
+  File: symbolic_link.txt -> original_file.txt
+  Size: 17              Blocks: 0          IO Block: 4096   symbolic link
+  Device: 259,8   Inode: 13428519    Links: 1
+  Access: (0777/lrwxrwxrwx)  Uid: ( 1000/  hit235)   Gid: ( 1000/  hit235)
+  Access: 2026-06-26 16:09:51.687442802 +0530
+  Modify: 2026-06-26 16:09:51.686173816 +0530
+  Change: 2026-06-26 16:09:51.686173816 +0530
+  Birth:  2026-06-26 16:09:51.686173816 +0530
+
+Explanation: The symbolic link has a DIFFERENT inode (13428519), a size of 17 bytes
+(the length of the target path string "original_file.txt"), and occupies 0 blocks
+because the path is stored inline in the inode. Its type is "symbolic link" and
+permissions are always lrwxrwxrwx (the target file's permissions are what matter).
+
+================================================================================
+
+SECTION 4: FILE TYPE VERIFICATION
+================================================================================
+
+Command: file original_file.txt hard_link.txt symbolic_link.txt
+Output:
+  original_file.txt: ASCII text
+  hard_link.txt:     ASCII text
+  symbolic_link.txt: symbolic link to original_file.txt
+
+Explanation: The `file` command identifies the type of each file. Both original and
+hard link are recognized as "ASCII text" (same actual data), while the symbolic link
+is identified as a "symbolic link to original_file.txt" — a pointer rather than data.
+
+================================================================================
+
+SECTION 5: COMPARISON – HARD LINK vs SYMBOLIC LINK
+================================================================================
+
++---------------------+----------------------------+----------------------------+
+| Property            | Hard Link                  | Symbolic Link              |
++---------------------+----------------------------+----------------------------+
+| Inode Number        | Same as original (13428518)| Different (13428519)       |
+| Link Count          | Increments original's      | Has its own (always 1)     |
+| File Size           | Same as original (56 bytes)| Size of path string (17)   |
+| Blocks Used         | Same as original (8)       | 0 (stored inline)          |
+| File Type           | Regular file               | Symbolic link              |
+| Permissions         | Same as original (644)     | Always 777 (lrwxrwxrwx)   |
+| Cross-filesystem    | NOT possible               | Possible                   |
+| Survives deletion   | YES (data preserved)       | NO (becomes broken/dangling)|
++---------------------+----------------------------+----------------------------+
+
+================================================================================
+
+SECTION 6: EFFECT OF DELETING THE ORIGINAL FILE
+================================================================================
+
+Command: rm original_file.txt
+Explanation: Deleted the original file to observe the behavior of both link types.
+
+---
+
+Command: ls -lai (after deletion)
+Output:
+  13428518 -rw-r--r-- 1 hit235 hit235   56 Jun 26 16:09 hard_link.txt
+  13428519 lrwxrwxrwx 1 hit235 hit235   17 Jun 26 16:09 symbolic_link.txt -> original_file.txt
+
+Explanation: After deletion, the hard link's link count dropped from 2 to 1, but
+the file DATA remains accessible through hard_link.txt. The symbolic link still
+exists but now points to a non-existent target.
+
+---
+
+Command: cat hard_link.txt
+Output:
+  This is the original file for link analysis experiment.
+
+Explanation: The hard link still provides full access to the file content because
+the data blocks are not freed until ALL hard links are removed (link count reaches 0).
+
+---
+
+Command: cat symbolic_link.txt
+Output:
+  cat: symbolic_link.txt: No such file or directory
+
+Explanation: The symbolic link is now BROKEN (dangling). Since it stores only the
+pathname "original_file.txt" and that file no longer exists, the symlink cannot
+resolve its target and produces an error.
+
+---
+
+Command: file hard_link.txt symbolic_link.txt
+Output:
+  hard_link.txt:     ASCII text
+  symbolic_link.txt: broken symbolic link to original_file.txt
+
+Explanation: The `file` command confirms that hard_link.txt is still valid ASCII text,
+while symbolic_link.txt is now explicitly identified as a "broken symbolic link."
+
+================================================================================
+
+CONCLUSIONS
+================================================================================
+
+1. HARD LINKS share the same inode as the original file, making them indistinguishable
+   from the original at the filesystem level. They are equally "real" — there is no
+   primary/secondary relationship.
+
+2. SYMBOLIC LINKS are separate filesystem objects with their own inodes. They store
+   a pathname string pointing to the target file, making them dependent on the target's
+   continued existence.
+
+3. Deleting the original file does NOT affect hard links — the data persists as long
+   as at least one hard link (directory entry) references the inode. The kernel tracks
+   this via the link count.
+
+4. Deleting the original file BREAKS symbolic links, turning them into "dangling" or
+   "broken" symlinks that cannot be resolved.
+
+5. Hard links CANNOT span across different filesystems (they must share the same inode
+   table), while symbolic links CAN point to files on different filesystems or even
+   to directories.
+
+6. The `stat` command is invaluable for investigating file metadata including inode
+   numbers, link counts, timestamps, and permission bits.
+
+================================================================================
+                              END OF REPORT
+================================================================================
